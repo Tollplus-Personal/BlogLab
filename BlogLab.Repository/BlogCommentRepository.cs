@@ -14,21 +14,24 @@ namespace BlogLab.Repository
     public class BlogCommentRepository : IBlogCommentRepository
     {
         private readonly IConfiguration _config;
+
         public BlogCommentRepository(IConfiguration config)
         {
             _config = config;
         }
+
         public async Task<int> DeleteAsync(int blogCommentId)
         {
             int affectedRows = 0;
+
             using (var connection = new SqlConnection(_config.GetConnectionString("DefaultConnection")))
             {
                 await connection.OpenAsync();
+
                 affectedRows = await connection.ExecuteAsync(
                     "BlogComment_Delete",
-                    new {BlogCommentId = blogCommentId },
-                    commandType: System.Data.CommandType.StoredProcedure
-                    );
+                    new { BlogCommentId = blogCommentId },
+                    commandType: CommandType.StoredProcedure);
             }
 
             return affectedRows;
@@ -42,8 +45,12 @@ namespace BlogLab.Repository
             {
                 await connection.OpenAsync();
 
-                blogComments = await connection.QueryAsync<BlogComment>("BlogComment_GetAll", new { BlogId = blogId }, commandType: System.Data.CommandType.StoredProcedure);
+                blogComments = await connection.QueryAsync<BlogComment>(
+                    "BlogComment_GetAll",
+                    new { BlogId = blogId},
+                    commandType: CommandType.StoredProcedure);
             }
+
             return blogComments.ToList();
         }
 
@@ -55,8 +62,12 @@ namespace BlogLab.Repository
             {
                 await connection.OpenAsync();
 
-                blogComment = await connection.QueryFirstOrDefaultAsync<BlogComment>("BlogComment_Get", new { BlogCommentId = blogCommentId }, commandType: System.Data.CommandType.StoredProcedure);
+                blogComment = await connection.QueryFirstOrDefaultAsync<BlogComment>(
+                    "BlogComment_Get",
+                    new { BlogCommentId = blogCommentId },
+                    commandType: CommandType.StoredProcedure);
             }
+
             return blogComment;
         }
 
@@ -66,10 +77,13 @@ namespace BlogLab.Repository
             dataTable.Columns.Add("BlogCommentId", typeof(int));
             dataTable.Columns.Add("ParentBlogCommentId", typeof(int));
             dataTable.Columns.Add("BlogId", typeof(int));
-            dataTable.Columns.Add("Content", typeof(int));
+            dataTable.Columns.Add("Content", typeof(string));
 
-            dataTable.Rows.Add(blogCommentCreate.BlogCommentId, blogCommentCreate.ParentBlogCommentId,
-                blogCommentCreate.BlogId,blogCommentCreate.Content);
+            dataTable.Rows.Add(
+                blogCommentCreate.BlogCommentId,
+                blogCommentCreate.ParentBlogCommentId, 
+                blogCommentCreate.BlogId,
+                blogCommentCreate.Content);
 
             int? newBlogCommentId;
 
@@ -77,10 +91,17 @@ namespace BlogLab.Repository
             {
                 await connection.OpenAsync();
 
-                newBlogCommentId = await connection.ExecuteScalarAsync<int>("BlogComment_Upsert", new { BlogComment = dataTable.AsTableValuedParameter("dbo.BlogCommentType"),ApplicationUserId  = applicationUserId }, commandType: CommandType.StoredProcedure);
+                newBlogCommentId = await connection.ExecuteScalarAsync<int?>(
+                    "BlogComment_Upsert",
+                    new { 
+                        BlogComment = dataTable.AsTableValuedParameter("dbo.BlogCommentType"),
+                        ApplicationUserId = applicationUserId
+                    },
+                    commandType: CommandType.StoredProcedure);
             }
 
-            newBlogCommentId = newBlogCommentId ?? blogCommentCreate.BlogCommentId; 
+            newBlogCommentId = newBlogCommentId ?? blogCommentCreate.BlogCommentId;
+
             BlogComment blogComment = await GetAsync(newBlogCommentId.Value);
 
             return blogComment;

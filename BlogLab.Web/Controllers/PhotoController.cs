@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading.Tasks;
 using BlogLab.Models.Photo;
@@ -9,6 +8,7 @@ using BlogLab.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace BlogLab.Web.Controllers
 {
@@ -20,12 +20,16 @@ namespace BlogLab.Web.Controllers
         private readonly IBlogRepository _blogRepository;
         private readonly IPhotoService _photoService;
 
-        public PhotoController(IPhotoRepository photoRepository, IBlogRepository blogRepository, IPhotoService photoService)
+        public PhotoController(
+            IPhotoRepository photoRepository,
+            IBlogRepository blogRepository,
+            IPhotoService photoService)
         {
             _photoRepository = photoRepository;
             _blogRepository = blogRepository;
             _photoService = photoService;
         }
+
         [Authorize]
         [HttpPost]
         public async Task<ActionResult<Photo>> UploadPhoto(IFormFile file)
@@ -42,6 +46,7 @@ namespace BlogLab.Web.Controllers
                 ImageUrl = uploadResult.SecureUrl.AbsoluteUri,
                 Description = file.FileName
             };
+
             var photo = await _photoRepository.InsertAsync(photoCreate, applicationUserId);
 
             return Ok(photo);
@@ -78,29 +83,27 @@ namespace BlogLab.Web.Controllers
             {
                 if (foundPhoto.ApplicationUserId == applicationUserId)
                 {
-                    var blogs = await _blogRepository.GetAllByUserAsync(applicationUserId);
+                    var blogs = await _blogRepository.GetAllByUserIdAsync(applicationUserId);
+
                     var usedInBlog = blogs.Any(b => b.PhotoId == photoId);
 
-                    if (usedInBlog) return BadRequest("Cannot remove Photo as it is being used in published blog(s).");
+                    if (usedInBlog) return BadRequest("Cannot remove photo as it is being used in published blog(s).");
 
                     var deleteResult = await _photoService.DeletePhotoAsync(foundPhoto.PublicId);
-                    if (deleteResult.Error != null) return BadRequest(deleteResult.Error.Message);
-                    var affectRows = await _photoRepository.DeleteAsync(foundPhoto.PhotoId);
 
-                    return Ok(affectRows);
-                    
-                }
+                    if (deleteResult.Error != null) return BadRequest(deleteResult.Error.Message);
+
+                    var affectedRows = await _photoRepository.DeletetAsync(foundPhoto.PhotoId);
+
+                    return Ok(affectedRows);
+                } 
                 else
                 {
                     return BadRequest("Photo was not uploaded by the current user.");
                 }
-
-                
             }
 
             return BadRequest("Photo does not exist.");
-
         }
-            
     }
 }
