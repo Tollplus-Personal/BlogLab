@@ -22,7 +22,6 @@ namespace BlogLab.Web.Controllers
             _blogCommentRepository = blogCommentRepository;
         }
 
-
         [Authorize]
         [HttpPost]
         public async Task<ActionResult<BlogComment>> Create(BlogCommentCreate blogCommentCreate)
@@ -34,13 +33,13 @@ namespace BlogLab.Web.Controllers
             return Ok(createdBlogComment);
         }
 
-        [HttpGet]
+        [HttpGet("{blogId}")]
         public async Task<ActionResult<List<BlogComment>>> GetAll(int blogId)
         {
             var blogComments = await _blogCommentRepository.GetAllAsync(blogId);
 
-            return Ok(blogComments);
-        } 
+            return blogComments;
+        }
 
         [Authorize]
         [HttpDelete("{blogCommentId}")]
@@ -51,8 +50,8 @@ namespace BlogLab.Web.Controllers
             var foundBlogComment = await _blogCommentRepository.GetAsync(blogCommentId);
 
             if (foundBlogComment == null) return BadRequest("Comment does not exist.");
-            
-            if(foundBlogComment.ApplicationUserId == applicationUserId)
+
+            if (foundBlogComment.ApplicationUserId == applicationUserId)
             {
                 var affectedRows = await _blogCommentRepository.DeleteAsync(blogCommentId);
 
