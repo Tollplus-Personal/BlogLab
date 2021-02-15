@@ -24,27 +24,28 @@ namespace BlogLab.Web
 {
     public class Startup
     {
-        public  IConfiguration Configuration { get; }
-        public Startup(IConfiguration config )
+        public IConfiguration Configuration { get; }
+
+        public Startup(IConfiguration config)
         {
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
             Configuration = config;
         }
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            //Service  Related to Cloudinary
             services.Configure<CloudinaryOptions>(Configuration.GetSection("CloudinaryOptions"));
-            // Service Related to Token and Photo Service
+
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IPhotoService, PhotoService>();
-            //Service Related Repository
+
             services.AddScoped<IBlogRepository, BlogRepository>();
             services.AddScoped<IBlogCommentRepository, BlogCommentRepository>();
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IPhotoRepository, PhotoRepository>();
-            //
+
             services.AddIdentityCore<ApplicationUserIdentity>(options =>
             {
                 options.Password.RequireNonAlphanumeric = false;
@@ -52,8 +53,10 @@ namespace BlogLab.Web
                 .AddUserStore<UserStore>()
                 .AddDefaultTokenProviders()
                 .AddSignInManager<SignInManager<ApplicationUserIdentity>>();
+
             services.AddControllers();
             services.AddCors();
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -80,6 +83,7 @@ namespace BlogLab.Web
                     }
                 );
 
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -90,8 +94,10 @@ namespace BlogLab.Web
                 app.UseDeveloperExceptionPage();
             }
 
-            app.ConfigureExecptionHandler();
+            app.ConfigureExceptionHandler();
+
             app.UseRouting();
+
             if (env.IsDevelopment())
             {
                 app.UseCors(options => options.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
